@@ -1,1 +1,1 @@
-# samplejava
+# example-maven-project
