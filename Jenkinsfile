@@ -34,6 +34,12 @@ echo "end of the maven clean command"
         }
 
         stage('Publish to Artifactory') {
+          agent {
+            node {
+              label 'dockerimage'
+            }
+
+          }
           steps {
             script {
               unstash 'build-test-artifacts'
