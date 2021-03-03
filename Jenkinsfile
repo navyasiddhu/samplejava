@@ -1,10 +1,5 @@
 pipeline {
-  agent {
-    node {
-      label 'dockerimage'
-    }
-
-  }
+  agent none
   stages {
     stage('Build and Test') {
       agent {
@@ -23,16 +18,43 @@ echo "end of the maven clean command"
     }
 
     stage('Report and Publish') {
-      agent {
-        node {
-          label 'dockerimage'
+      parallel {
+        stage('Report and Publish') {
+          agent {
+            node {
+              label 'dockerimage'
+            }
+
+          }
+          steps {
+            unstash 'build-test-artifacts'
+            junit '**/target/surefire-reports/TEST-*.xml'
+            archiveArtifacts(artifacts: 'target/*.jar', onlyIfSuccessful: true)
+          }
         }
 
-      }
-      steps {
-        unstash 'build-test-artifacts'
-        junit '**/target/surefire-reports/TEST-*.xml'
-        archiveArtifacts(artifacts: 'target/*.jar', onlyIfSuccessful: true)
+        stage('Publish to Artifactory') {
+          steps {
+            script {
+              unstash 'build-test-artifacts'
+
+              def server = Artifactory.server 'ArtifactoryServer'
+              def uploadSpec = """{
+                "files": [
+                  {
+                    "pattern": "target/*.jar",
+                    "target": "example-repo-local/${BRANCH_NAME}/${BUILD_NUMBER}/"
+                  }
+                ]
+
+              }"""
+
+              server.upload(uploadSpec)
+            }
+
+          }
+        }
+
       }
     }
 
