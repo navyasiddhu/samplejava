@@ -1,5 +1,10 @@
 pipeline {
-  agent none
+  agent {
+    node {
+      label 'dockerimage'
+    }
+
+  }
   stages {
     stage('Build and Test') {
       agent {
@@ -14,6 +19,20 @@ mvn -Dmaven.text.failure.ignore clean package
 echo "end of the maven clean command"
 '''
         stash(name: 'build-test-artificats', includes: '**/target/surefire-reports/TEST-*.xml, target/*.jar')
+      }
+    }
+
+    stage('Report and Publish') {
+      agent {
+        node {
+          label 'dockerimage'
+        }
+
+      }
+      steps {
+        unstash 'build-test-artifacts'
+        junit '**/target/surefire-reports/TEST-*.xml'
+        archiveArtifacts(artifacts: 'target/*.jar', onlyIfSuccessful: true)
       }
     }
 
